@@ -15,7 +15,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             loop {
                 match socket.read(&mut buf).await {
                     // socket closed
-                    Ok(n) if n == 0 => return,
+                    Ok(0) => return,
                     // 将接受到的数据打印为字符串
                     Ok(n) => {
                         let s = String::from_utf8_lossy(&buf[0..n]);

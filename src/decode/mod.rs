@@ -46,7 +46,7 @@ impl TryFrom<Vec<u8>> for Resp {
                 let mut arr: Vec<Resp> = Vec::new();
                 //array的长度就是需要解析元素的次数
                 let mut start = first_type_end_index(&item)?;
-                let mut end = start + first_type_end_index(&item[start..].to_vec())?;
+                let mut end = start + first_type_end_index(&item[start..])?;
                 for i in 0..array_len.parse::<usize>()? {
                     println!("i: {} start: {:?} end: {:?}", i, start, end);
                     let frag = item[start..end].to_vec();
@@ -56,7 +56,7 @@ impl TryFrom<Vec<u8>> for Resp {
                     if start >= item.len() {
                         break;
                     }
-                    end = start + first_type_end_index(&item[start..].to_vec())?;
+                    end = start + first_type_end_index(&item[start..])?;
                 }
                 Ok(Resp::Arrays(Arrays::new(arr)))
             }

@@ -14,7 +14,7 @@ mod tests {
 
     #[test]
     fn test_encode() {
-        let d = Doubles { val: 3.14 };
-        assert_eq!(d.encode().unwrap(), ",3.14\r\n".as_bytes().to_vec());
+        let d = Doubles { val: 13.14 };
+        assert_eq!(d.encode().unwrap(), ",13.14\r\n".as_bytes().to_vec());
     }
 }

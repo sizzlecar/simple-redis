@@ -19,7 +19,9 @@ pub struct Parameter {
 #[allow(unused)]
 impl Parameter {
     pub fn new() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 
     pub fn add(&mut self, k: String, v: Option<String>) {
