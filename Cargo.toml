@@ -2,8 +2,12 @@
 name = "simple-redis"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.83"
+dashmap = "5.5.3"
+enum_dispatch = "0.3.13"
 tokio = { version = "1", features = ["net", "io-util", "rt", "tokio-macros", "sync", "macros", "rt-multi-thread"] }
