@@ -1,21 +1,15 @@
+use bytes::BytesMut;
+
 use crate::{
-    resp::Resp, Arrays, BigNumbers, Booleans, BulkStrings, Decoder, Doubles, Integers, Nulls,
-    Processor, SimpleErrors, SimpleStringsData, ARRAYS_BYTE, BIG_NUMBERS_BYTE, BOOLEANS_BYTE,
+    resp::Resp, Arrays, BigNumbers, Booleans, BulkStrings, Doubles, Integers, Nulls, RespDecoder,
+    SimpleErrors, SimpleStringsData, ARRAYS_BYTE, BIG_NUMBERS_BYTE, BOOLEANS_BYTE,
     BULK_STRINGS_BYTE, CRLF, DOUBLES_BYTE, ERRORS_BYTE, INTEGERS_BYTE, NULLS_BYTE,
     SIMPLE_STRINGS_BYTE,
 };
 
-impl Decoder for Vec<u8> {
-    fn decode(self) -> Result<Box<dyn Processor>, anyhow::Error> {
-        let resp: Resp = self.try_into()?;
-        resp.try_into()
-    }
-}
-
-impl TryFrom<Vec<u8>> for Resp {
-    type Error = anyhow::Error;
-
-    fn try_from(item: Vec<u8>) -> Result<Resp, anyhow::Error> {
+impl RespDecoder for Resp {
+    fn decode(buf: &mut BytesMut) -> Result<Self, anyhow::Error> {
+        let item = buf.to_vec();
         //1. 取出第一个byte 判断RESP
         //2. 根据每个RESP的类型的反序列化规则 转化为 对应的RESP类型
         //3. 如果是Array类型 则继续递归解析
@@ -49,8 +43,9 @@ impl TryFrom<Vec<u8>> for Resp {
                 let mut end = start + first_type_end_index(&item[start..])?;
                 for i in 0..array_len.parse::<usize>()? {
                     println!("i: {} start: {:?} end: {:?}", i, start, end);
-                    let frag = item[start..end].to_vec();
-                    arr.push(frag.try_into()?);
+                    let frag = &item[start..end];
+                    let mut bm = BytesMut::from(frag);
+                    arr.push(Resp::decode(&mut bm)?);
                     //下一个resp type 的报文开始位置
                     start = end;
                     if start >= item.len() {
@@ -145,13 +140,14 @@ fn vec_split(item: &[u8]) -> Result<Vec<String>, anyhow::Error> {
 mod tests {
     use super::*;
     use crate::resp::Resp;
-    use crate::Encoder; // Import the trait that contains the `encode` method
+    use crate::RespEncoder; // Import the trait that contains the `encode` method
 
     #[test]
     fn test_resp_simple_strings() {
         let resp = Resp::SimpleStrings(SimpleStringsData::new("OK".to_string()));
-        let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let encoded: Vec<u8> = resp.clone().encode().unwrap();
+        let mut bm = BytesMut::from(encoded.as_slice());
+        let decoded: Resp = Resp::decode(&mut bm).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -159,7 +155,7 @@ mod tests {
     fn test_resp_simple_errors() {
         let resp = Resp::SimpleErrors(SimpleErrors::new("ERR".to_string()));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -167,7 +163,7 @@ mod tests {
     fn test_resp_integers() {
         let resp = Resp::Integers(Integers::new(123));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -175,7 +171,7 @@ mod tests {
     fn test_resp_bulk_strings() {
         let resp = Resp::BulkStrings(BulkStrings::new("foobar".to_string()));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -186,7 +182,7 @@ mod tests {
             Resp::SimpleStrings(SimpleStringsData::new("bar".to_string())),
         ]));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -194,7 +190,7 @@ mod tests {
     fn test_resp_nulls() {
         let resp = Resp::Nulls(Nulls::new());
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -202,7 +198,7 @@ mod tests {
     fn test_resp_booleans() {
         let resp = Resp::Booleans(Booleans::new(true));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -210,7 +206,7 @@ mod tests {
     fn test_resp_doubles() {
         let resp = Resp::Doubles(Doubles::new(13.14));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -218,7 +214,7 @@ mod tests {
     fn test_resp_big_numbers() {
         let resp = Resp::BigNumbers(BigNumbers::new(123456789012345678901234567890));
         let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = encoded.try_into().unwrap();
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 }

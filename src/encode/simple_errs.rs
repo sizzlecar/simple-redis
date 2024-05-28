@@ -1,6 +1,6 @@
-use crate::{resp::SimpleErrors, Encoder};
+use crate::{resp::SimpleErrors, RespEncoder};
 
-impl Encoder for SimpleErrors {
+impl RespEncoder for SimpleErrors {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(format!("-{}\r\n", self.error_msg).as_bytes().to_vec())
     }

@@ -1,6 +1,6 @@
-use crate::{resp::Doubles, Encoder};
+use crate::{resp::Doubles, RespEncoder};
 
-impl Encoder for Doubles {
+impl RespEncoder for Doubles {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(format!(",{}\r\n", self.val).as_bytes().to_vec())
     }

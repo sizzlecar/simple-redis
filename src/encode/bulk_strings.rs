@@ -1,6 +1,6 @@
-use crate::{resp::BulkStrings, Encoder};
+use crate::{resp::BulkStrings, RespEncoder};
 
-impl Encoder for BulkStrings {
+impl RespEncoder for BulkStrings {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(format!("${}\r\n{}\r\n", self.val.len(), self.val)
             .as_bytes()

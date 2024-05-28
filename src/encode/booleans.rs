@@ -1,6 +1,6 @@
-use crate::{resp::Booleans, Encoder};
+use crate::{resp::Booleans, RespEncoder};
 
-impl Encoder for Booleans {
+impl RespEncoder for Booleans {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(format!("#{}\r\n", if self.val { "t" } else { "f" })
             .as_bytes()

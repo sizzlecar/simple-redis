@@ -1,8 +1,8 @@
-use crate::Encoder; // Add missing import
+use crate::RespEncoder; // Add missing import
 
 use crate::resp::SimpleStringsData;
 
-impl Encoder for SimpleStringsData {
+impl RespEncoder for SimpleStringsData {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(format!("+{}\r\n", self.val).as_bytes().to_vec())
     }

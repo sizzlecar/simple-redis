@@ -1,6 +1,6 @@
-use crate::{resp::Nulls, Encoder};
+use crate::{resp::Nulls, RespEncoder};
 
-impl Encoder for Nulls {
+impl RespEncoder for Nulls {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(b"_-1\r\n".to_vec())
     }

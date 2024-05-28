@@ -1,4 +1,4 @@
-use crate::{process::Parameter, Encoder, Processor};
+use crate::{process::Parameter, Processor, Resp, RespEncoder, SimpleStringsData};
 
 #[derive(Debug)]
 #[allow(unused)]
@@ -17,7 +17,10 @@ impl SetCommandPara {
 }
 
 impl Processor for SetCommandPara {
-    fn process(self) -> Result<Box<dyn Encoder>, anyhow::Error> {
-        todo!()
+    fn process(&self) -> Result<Box<dyn RespEncoder>, anyhow::Error> {
+        println!("para: {:?}", &self);
+        Ok(Box::new(Resp::SimpleStrings(SimpleStringsData::new(
+            "ok".to_owned(),
+        ))))
     }
 }

@@ -14,7 +14,7 @@ pub const DOUBLES_BYTE: u8 = b',';
 pub const BIG_NUMBERS_BYTE: u8 = b'(';
 
 #[derive(Debug, PartialEq, Clone)]
-#[enum_dispatch(Encoder, TryCommand)]
+#[enum_dispatch(RespEncoder)]
 pub enum Resp {
     SimpleStrings(SimpleStringsData),
     SimpleErrors(SimpleErrors),

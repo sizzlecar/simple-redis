@@ -1,6 +1,6 @@
-use crate::{resp::BigNumbers, Encoder};
+use crate::{resp::BigNumbers, RespEncoder};
 
-impl Encoder for BigNumbers {
+impl RespEncoder for BigNumbers {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         Ok(format!("({}\r\n", self.val).as_bytes().to_vec())
     }

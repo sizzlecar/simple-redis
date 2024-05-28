@@ -1,6 +1,6 @@
-use crate::{resp::Arrays, Encoder};
+use crate::{resp::Arrays, RespEncoder};
 
-impl Encoder for Arrays {
+impl RespEncoder for Arrays {
     fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
         let mut encoded = format!("*{}\r\n", self.val.len()).as_bytes().to_vec();
         for val in self.val {
