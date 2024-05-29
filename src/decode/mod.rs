@@ -10,6 +10,7 @@ use crate::{
 impl RespDecoder for Resp {
     fn decode(buf: &mut BytesMut) -> Result<Self, anyhow::Error> {
         let item = buf.to_vec();
+        println!("item: {}", String::from_utf8(item.clone()).unwrap());
         //1. 取出第一个byte 判断RESP
         //2. 根据每个RESP的类型的反序列化规则 转化为 对应的RESP类型
         //3. 如果是Array类型 则继续递归解析
@@ -107,7 +108,13 @@ fn first_type_end_index(item: &[u8]) -> Result<usize, anyhow::Error> {
             String::from_utf8(item.to_vec()),
             res
         );
-        Ok(res)
+        match item[0] {
+            BULK_STRINGS_BYTE => {
+                let len = exact(item)?;
+                Ok(res + len.parse::<usize>()? + CRLF.len())
+            }
+            _ => Ok(res),
+        }
     } else {
         Err(anyhow::Error::msg("invalid RESP"))
     }
