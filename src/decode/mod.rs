@@ -1,145 +1,145 @@
-use bytes::BytesMut;
+use bytes::{Buf, BytesMut};
 
 use crate::{
     resp::Resp, Arrays, BigNumbers, Booleans, BulkStrings, Doubles, Integers, Nulls, RespDecoder,
-    SimpleErrors, SimpleStringsData, ARRAYS_BYTE, BIG_NUMBERS_BYTE, BOOLEANS_BYTE,
-    BULK_STRINGS_BYTE, CRLF, DOUBLES_BYTE, ERRORS_BYTE, INTEGERS_BYTE, NULLS_BYTE,
+    RespEncoder, RespError, SimpleErrors, SimpleStringsData, ARRAYS_BYTE, BIG_NUMBERS_BYTE,
+    BOOLEANS_BYTE, BULK_STRINGS_BYTE, CRLF, DOUBLES_BYTE, ERRORS_BYTE, INTEGERS_BYTE, NULLS_BYTE,
     SIMPLE_STRINGS_BYTE,
 };
 
 impl RespDecoder for Resp {
-    fn decode(buf: &mut BytesMut) -> Result<Self, anyhow::Error> {
-        let item = buf.to_vec();
-        println!("item: {}", String::from_utf8(item.clone()).unwrap());
+    fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
+        println!("decode buf: {:?}", buf);
         //1. 取出第一个byte 判断RESP
         //2. 根据每个RESP的类型的反序列化规则 转化为 对应的RESP类型
         //3. 如果是Array类型 则继续递归解析
         //Clients send commands to a Redis server as an array of bulk strings.
         //The first (and sometimes also the second) bulk string in the array is the command's name.
         //Subsequent elements of the array are the arguments for the command.
-        match item.first() {
-            Some(&SIMPLE_STRINGS_BYTE) => {
-                Ok(Resp::SimpleStrings(SimpleStringsData::new(exact(&item)?)))
-            }
-            Some(&ERRORS_BYTE) => Ok(Resp::SimpleErrors(SimpleErrors::new(exact(&item)?))),
+        match buf.first() {
+            Some(&SIMPLE_STRINGS_BYTE) => Ok(Resp::SimpleStrings(SimpleStringsData::new(
+                exact_advance(buf, true)?,
+            ))),
+            Some(&ERRORS_BYTE) => Ok(Resp::SimpleErrors(SimpleErrors::new(exact_advance(
+                buf, true,
+            )?))),
             Some(&INTEGERS_BYTE) => {
-                let str = exact(&item)?;
+                let str = exact_advance(buf, true)?;
                 str.parse::<i64>()
                     .map(|val| Resp::Integers(Integers::new(val)))
-                    .map_err(|_e| anyhow::Error::msg(_e.to_string()))
+                    .map_err(RespError::ParseIntError)
             }
             Some(&BULK_STRINGS_BYTE) => {
-                let vec = vec_split(&item)?;
-                if vec.len() != 2 || vec[0].parse::<usize>()? != vec[1].len() {
-                    Err(anyhow::Error::msg("invalid RESP bulk string"))
-                } else {
-                    Ok(Resp::BulkStrings(BulkStrings::new(vec[1].to_string())))
-                }
+                let str_len = exact_advance(buf, true)?.parse()?;
+                let val = buf[..str_len].to_vec();
+                buf.advance(str_len + CRLF.len());
+                Ok(Resp::BulkStrings(BulkStrings::new(String::from_utf8(val)?)))
             }
             Some(&ARRAYS_BYTE) => {
-                let array_len = exact(&item)?;
+                let array_len = exact_advance(buf, true)?;
                 let mut arr: Vec<Resp> = Vec::new();
                 //array的长度就是需要解析元素的次数
-                let mut start = first_type_end_index(&item)?;
-                let mut end = start + first_type_end_index(&item[start..])?;
                 for i in 0..array_len.parse::<usize>()? {
-                    println!("i: {} start: {:?} end: {:?}", i, start, end);
-                    let frag = &item[start..end];
-                    let mut bm = BytesMut::from(frag);
-                    arr.push(Resp::decode(&mut bm)?);
-                    //下一个resp type 的报文开始位置
-                    start = end;
-                    if start >= item.len() {
-                        break;
+                    println!("i: {}, buf:{:?}", i, buf);
+                    arr.push(Resp::decode(buf)?);
+                    println!("i: {}, arr:{:?}", i, arr);
+                    if !buf.is_empty() {
+                        advance_to_next(buf)?;
                     }
-                    end = start + first_type_end_index(&item[start..])?;
                 }
                 Ok(Resp::Arrays(Arrays::new(arr)))
             }
-            Some(&NULLS_BYTE) => Ok(Resp::Nulls(Nulls::new())),
+            Some(&NULLS_BYTE) => {
+                let null = Resp::Nulls(Nulls::new());
+                let null_encode: Result<Vec<u8>, anyhow::Error> = null.clone().encode();
+                buf.advance(
+                    null_encode
+                        .map_err(|_| {
+                            RespError::InternalError("calc null encode len error".to_owned())
+                        })?
+                        .len(),
+                );
+                Ok(null)
+            }
             Some(&BOOLEANS_BYTE) => {
-                let val = exact(&item)?;
+                let val = exact_advance(buf, true)?;
                 if val == "t" {
                     Ok(Resp::Booleans(Booleans::new(true)))
                 } else if val == "f" {
                     Ok(Resp::Booleans(Booleans::new(false)))
                 } else {
-                    Err(anyhow::Error::msg("invalid RESP boolean"))
+                    Err(RespError::InvalidFrameType(format!(
+                        "invalid RESP boolean: {:?}",
+                        val
+                    )))
                 }
             }
             Some(&DOUBLES_BYTE) => {
-                let val = exact(&item)?;
+                let val = exact_advance(buf, true)?;
                 val.parse::<f64>()
                     .map(|val| Resp::Doubles(Doubles::new(val)))
-                    .map_err(|_e| anyhow::Error::msg("invalid RESP double"))
+                    .map_err(RespError::ParseFloatError)
             }
             Some(&BIG_NUMBERS_BYTE) => {
-                let val = exact(&item)?;
+                let val = exact_advance(buf, true)?;
                 val.parse::<i128>()
                     .map(|val| Resp::BigNumbers(BigNumbers::new(val)))
-                    .map_err(|_e| anyhow::Error::msg("invalid RESP double"))
+                    .map_err(RespError::ParseIntError)
             }
-            _ => Err(anyhow::Error::msg("unsupported RESP type")),
+            None => Err(RespError::NotComplete),
+            _ => Err(RespError::InvalidFrameType(format!(
+                "expect_length: unknown frame type: {:?}",
+                buf
+            ))),
         }
     }
 }
 
-fn exact(item: &[u8]) -> Result<String, anyhow::Error> {
-    let pos_opt = item
+fn exact(buf: &mut BytesMut) -> Result<String, RespError> {
+    exact_advance(buf, false)
+}
+
+fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespError> {
+    println!("exact_advance start: buf:{:?}", buf);
+    let pos_opt = buf
         .windows(CRLF.len())
         .position(|window: &[u8]| window == CRLF);
     if let Some(pos) = pos_opt {
-        let res: String = String::from_utf8(item[1..pos].to_vec())?;
-        println!("item:{:?} val: {:?}", String::from_utf8(item.to_vec()), res);
+        let res: String = String::from_utf8(buf[1..pos].to_vec())?;
+        if advance_flag {
+            buf.advance(pos + CRLF.len());
+        }
+        println!("exact_advance end: buf:{:?}", buf);
         Ok(res)
     } else {
-        Err(anyhow::Error::msg("invalid RESP"))
+        Err(RespError::NotComplete)
     }
 }
 
-fn first_type_end_index(item: &[u8]) -> Result<usize, anyhow::Error> {
-    let pos_opt = item
+fn advance_to_next(buf: &mut BytesMut) -> Result<usize, RespError> {
+    println!("advance_to_next start: buf:{:?}", buf);
+    let pos_opt = buf
         .windows(CRLF.len())
         .position(|window: &[u8]| window == CRLF);
     if let Some(pos) = pos_opt {
         let res: usize = pos + CRLF.len();
-        println!(
-            "item:{:?} index: {:?}",
-            String::from_utf8(item.to_vec()),
-            res
-        );
-        match item[0] {
-            BULK_STRINGS_BYTE => {
-                let len = exact(item)?;
-                Ok(res + len.parse::<usize>()? + CRLF.len())
+        println!("advance_to_next buf:{:?}, CRLF index: {}", buf, res);
+        match buf.first() {
+            Some(&BULK_STRINGS_BYTE) => {
+                let len: String = exact(buf)?;
+                let end = res + len.parse::<usize>()? + 2 * CRLF.len();
+                println!("advance_to_next end: buf:{:?}", buf);
+                Ok(end)
             }
-            _ => Ok(res),
+            _ => {
+                let end = res;
+                println!("advance_to_next end: buf:{:?}", buf);
+                Ok(end)
+            }
         }
     } else {
-        Err(anyhow::Error::msg("invalid RESP"))
+        Err(RespError::InvalidFrameLength(buf.len() as isize))
     }
-}
-
-fn vec_split(item: &[u8]) -> Result<Vec<String>, anyhow::Error> {
-    let mut parts = Vec::new();
-    let mut start = 1;
-    while let Some(end) = item[start..]
-        .windows(CRLF.len())
-        .position(|window| window == CRLF)
-    {
-        let part = String::from_utf8(item[start..start + end].to_vec())
-            .map_err(|_| anyhow::Error::msg("Invalid UTF-8 string"))?;
-        parts.push(part);
-        start += end + CRLF.len();
-    }
-
-    if start < CRLF.len() {
-        let part = String::from_utf8(item[start..].to_vec())
-            .map_err(|_| anyhow::Error::msg("Invalid UTF-8 string"))?;
-        parts.push(part);
-    }
-
-    Ok(parts)
 }
 
 // 单元测试
@@ -188,8 +188,8 @@ mod tests {
             Resp::SimpleStrings(SimpleStringsData::new("foo".to_string())),
             Resp::SimpleStrings(SimpleStringsData::new("bar".to_string())),
         ]));
-        let encoded = resp.clone().encode().unwrap();
-        let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
+        let decoded: Resp =
+            Resp::decode(&mut BytesMut::from(b"*2\r\n+foo\r\n+bar\r\n".as_slice())).unwrap();
         assert_eq!(resp, decoded);
     }
 
@@ -222,6 +222,19 @@ mod tests {
         let resp = Resp::BigNumbers(BigNumbers::new(123456789012345678901234567890));
         let encoded = resp.clone().encode().unwrap();
         let decoded: Resp = Resp::decode(&mut BytesMut::from(encoded.as_slice())).unwrap();
+        assert_eq!(resp, decoded);
+    }
+
+    #[test]
+    fn test_array_bulk_strings() {
+        let decoded: Resp = Resp::decode(&mut BytesMut::from(
+            b"*2\r\n$7\r\nCOMMAND\r\n$4\r\nDOCS\r\n".as_slice(),
+        ))
+        .unwrap();
+        let resp = Resp::Arrays(Arrays::new(vec![
+            Resp::BulkStrings(BulkStrings::new("COMMAND".to_string())),
+            Resp::BulkStrings(BulkStrings::new("DOCS".to_string())),
+        ]));
         assert_eq!(resp, decoded);
     }
 }

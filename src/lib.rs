@@ -11,7 +11,7 @@ use crate::process::CommandGroup;
 pub use resp::*;
 
 pub trait RespDecoder: Sized {
-    fn decode(buf: &mut BytesMut) -> Result<Self, anyhow::Error>;
+    fn decode(buf: &mut BytesMut) -> Result<Self, RespError>;
 }
 
 #[enum_dispatch]

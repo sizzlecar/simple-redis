@@ -1,7 +1,6 @@
 use anyhow::Result;
-use bytes::BytesMut;
 use futures::SinkExt;
-use simple_redis::{network::RespFrameCodec, Resp, RespDecoder};
+use simple_redis::{network::RespFrameCodec, Resp, SimpleStringsData};
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
 use tokio_util::codec::Framed;
@@ -17,7 +16,7 @@ async fn main() -> Result<()> {
         let (socket, addr) = listener.accept().await?;
         println!("Accepted connection from: {}", addr);
         tokio::spawn(async move {
-            let mut framed = Framed::new(socket, RespFrameCodec::new());
+            let mut framed = Framed::new(socket, RespFrameCodec);
             // In a loop, read data from the socket and write the data back.
             loop {
                 match framed.next().await {
@@ -25,8 +24,16 @@ async fn main() -> Result<()> {
                         println!("Received frame: {:?}", frame);
                         //let resp = frame.process().await?;
                         let response =
-                            Resp::decode(&mut BytesMut::from(b"+OK\r\n".as_slice())).unwrap();
-                        framed.send(response).await?;
+                            Resp::SimpleStrings(SimpleStringsData::new("OK".to_string()));
+                        match framed.send(response).await {
+                            Ok(_) => {
+                                println!("Response sent");
+                            }
+                            Err(e) => {
+                                eprintln!("Error: {}", e);
+                                return Err(e);
+                            }
+                        };
                     }
                     Some(Err(e)) => {
                         eprintln!("Error: {}", e);

@@ -1,5 +1,5 @@
-use crate::RespEncoder;
 use crate::{Resp, RespDecoder};
+use crate::{RespEncoder, RespError};
 use anyhow::Result;
 use tokio_util::codec::{Decoder, Encoder};
 
@@ -23,6 +23,7 @@ impl Encoder<Resp> for RespFrameCodec {
 
     fn encode(&mut self, item: Resp, dst: &mut bytes::BytesMut) -> Result<()> {
         let encoded = item.encode()?;
+        println!("encoded: {:?}", String::from_utf8_lossy(&encoded));
         dst.extend_from_slice(&encoded);
         Ok(())
     }
@@ -35,7 +36,8 @@ impl Decoder for RespFrameCodec {
     fn decode(&mut self, src: &mut bytes::BytesMut) -> Result<Option<Resp>> {
         match Resp::decode(src) {
             Ok(frame) => Ok(Some(frame)),
-            Err(e) => Err(e),
+            Err(RespError::NotComplete) => Ok(None),
+            Err(e) => Err(e.into()),
         }
     }
 }
