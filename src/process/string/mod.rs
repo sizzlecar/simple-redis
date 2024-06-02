@@ -6,7 +6,7 @@ pub mod get;
 pub mod set;
 
 #[derive(Debug)]
-#[enum_dispatch(Processor, TryCommand)]
+#[enum_dispatch(Processor)]
 pub enum StringCommand {
     Set(SetCommandPara),
     Get(GetCommandPara),

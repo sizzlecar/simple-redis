@@ -1,4 +1,6 @@
-use crate::{process::Parameter, Processor, Resp, RespEncoder, SimpleStringsData};
+use tracing::info;
+
+use crate::{process::Parameter, Data, Nulls, Processor, Resp, SimpleErrors};
 
 #[derive(Debug)]
 #[allow(unused)]
@@ -17,10 +19,26 @@ impl GetCommandPara {
 }
 
 impl Processor for GetCommandPara {
-    fn process(&self) -> Result<Box<dyn RespEncoder>, anyhow::Error> {
-        println!("para: {:?}", &self);
-        Ok(Box::new(Resp::SimpleStrings(SimpleStringsData::new(
-            "ok".to_owned(),
-        ))))
+    fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
+        info!(
+            "GetCommandPara process start: {:?}, data: {:?}",
+            &self, data
+        );
+        match &self.key {
+            Some(k) => {
+                if !data.string_data.contains_key(k) {
+                    Ok(Resp::SimpleErrors(SimpleErrors::new(
+                        "no suck key".to_owned(),
+                    )))
+                } else {
+                    let v = data.string_data.get(k);
+                    match v {
+                        Some(v) => Ok(v.value().clone()),
+                        None => Ok(Resp::Nulls(Nulls::default())),
+                    }
+                }
+            }
+            None => Err(anyhow::Error::msg("key is none")),
+        }
     }
 }

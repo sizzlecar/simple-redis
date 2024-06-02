@@ -1,9 +1,13 @@
+use std::sync::Arc;
+
 use anyhow::Result;
 use futures::SinkExt;
-use simple_redis::{network::RespFrameCodec, Resp, SimpleStringsData};
+use simple_redis::Processor;
+use simple_redis::{network::RespFrameCodec, process::CommandGroup};
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
 use tokio_util::codec::Framed;
+use tracing::{info, level_filters::LevelFilter};
 
 /// 1. 从TcpStream从读取frame，要为Resp实现 frame decode 和 encode
 /// 2. 从frame中解析出命令和参数
@@ -11,21 +15,29 @@ use tokio_util::codec::Framed;
 /// 4. Processor返回一个Resp，将Resp encode 结果写入TcpStream
 #[tokio::main]
 async fn main() -> Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:6379").await?;
+    tracing_subscriber::fmt()
+        .with_max_level(LevelFilter::INFO)
+        .init();
+    let addr = "127.0.0.1:6379";
+    let listener: TcpListener = TcpListener::bind(addr).await?;
+    info!("Listening on: {}", addr);
+    let data_arc = Arc::new(simple_redis::Data::new());
     loop {
         let (socket, addr) = listener.accept().await?;
-        println!("Accepted connection from: {}", addr);
+        info!("Accepted connection from: {}", addr);
+        let data_clone = data_arc.clone();
         tokio::spawn(async move {
             let mut framed = Framed::new(socket, RespFrameCodec);
             // In a loop, read data from the socket and write the data back.
             loop {
                 match framed.next().await {
                     Some(Ok(frame)) => {
-                        println!("Received frame: {:?}", frame);
-                        //let resp = frame.process().await?;
-                        let response =
-                            Resp::SimpleStrings(SimpleStringsData::new("OK".to_string()));
-                        match framed.send(response).await {
+                        info!("Received frame: {:?}", frame);
+                        let command: CommandGroup = CommandGroup::try_from(frame)?;
+                        info!("frame to command : {:?}", command);
+                        let res_frame = command.process(&data_clone)?;
+                        println!("Response frame: {:?}", res_frame);
+                        match framed.send(res_frame).await {
                             Ok(_) => {
                                 println!("Response sent");
                             }

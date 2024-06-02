@@ -1,9 +1,11 @@
 use enum_dispatch::enum_dispatch;
+use tracing::info;
 
 use crate::process::string::StringCommand;
-use crate::{GetCommandPara, Processor, Resp};
+use crate::{GetCommandPara, Resp};
 
 use self::string::set::SetCommandPara;
+use std::convert::TryFrom;
 
 pub mod hash;
 pub mod list;
@@ -33,6 +35,12 @@ impl Parameter {
     }
 }
 
+impl Default for Parameter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[allow(unused)]
 #[derive(Debug)]
 pub struct Options {
@@ -58,19 +66,16 @@ pub enum CommandGroup {
     //SortedSet(SortedSetCommand),
 }
 
-//Resp -> Processor
-// 1. 从bulk string array 中第一个元素获取命令名
-// 2. 从bulk string array 其他元素获取参数
-impl std::convert::TryFrom<Resp> for Box<dyn Processor> {
+impl TryFrom<Resp> for CommandGroup {
     type Error = anyhow::Error;
 
     fn try_from(value: Resp) -> Result<Self, Self::Error> {
+        println!("value: {:?}", &value);
         match value {
-            // 客户端会发送一个bulk 数组，数组的第一个元素是命令名，后面的元素是参数
             Resp::Arrays(arr) => {
                 let mut iter = arr.val.iter();
                 let command = try_exact_bulk_string(iter.next())?;
-
+                println!("command: {:?}", &command);
                 match command.to_lowercase().as_str() {
                     "set" => {
                         let key = try_exact_bulk_string(iter.next())?;
@@ -80,34 +85,25 @@ impl std::convert::TryFrom<Resp> for Box<dyn Processor> {
                             let key = try_exact_bulk_string(Some(item))?;
                             para.add(key.to_string(), None);
                         }
-                        Ok(Box::new(CommandGroup::String(StringCommand::Set(
+                        info!("key:{}, value:{} para: {:?}", key, value, &para);
+                        Ok(CommandGroup::String(StringCommand::Set(
                             SetCommandPara::new(
                                 Some(key.to_string()),
                                 Some(value.to_string()),
                                 para,
                             ),
-                        ))))
+                        )))
                     }
                     "get" => {
                         let key = try_exact_bulk_string(iter.next())?;
-                        let value = try_exact_bulk_string(iter.next())?;
-                        let mut para = Parameter::new();
-                        for item in iter {
-                            let key = try_exact_bulk_string(Some(item))?;
-                            para.add(key.to_string(), None);
-                        }
-                        Ok(Box::new(CommandGroup::String(StringCommand::Get(
-                            GetCommandPara::new(
-                                Some(key.to_string()),
-                                Some(value.to_string()),
-                                para,
-                            ),
-                        ))))
+                        info!("key:{}", key);
+                        Ok(CommandGroup::String(StringCommand::Get(
+                            GetCommandPara::new(Some(key.to_string()), None, Parameter::new()),
+                        )))
                     }
                     _ => Err(anyhow::anyhow!("not support command")),
                 }
             }
-            //其余情况视为异常
             _ => Err(anyhow::anyhow!("unsupported command")),
         }
     }
@@ -116,7 +112,10 @@ impl std::convert::TryFrom<Resp> for Box<dyn Processor> {
 //断言resp类型为bulk string，返回值，其他的类型视为异常
 pub fn try_exact_bulk_string(resp_opt: Option<&Resp>) -> Result<&str, anyhow::Error> {
     match resp_opt {
-        Some(Resp::BulkStrings(para)) => Ok(para.val.as_str()),
+        Some(Resp::BulkStrings(para)) => {
+            info!("para: {:?}", para);
+            Ok(para.val.as_str())
+        }
         _ => Err(anyhow::anyhow!("invalid command")),
     }
 }

@@ -1,4 +1,7 @@
-use crate::{process::Parameter, Processor, Resp, RespEncoder, SimpleStringsData};
+use anyhow::Ok;
+use tracing::info;
+
+use crate::{process::Parameter, Data, Processor, Resp, SimpleStringsData};
 
 #[derive(Debug)]
 #[allow(unused)]
@@ -17,10 +20,22 @@ impl SetCommandPara {
 }
 
 impl Processor for SetCommandPara {
-    fn process(&self) -> Result<Box<dyn RespEncoder>, anyhow::Error> {
-        println!("para: {:?}", &self);
-        Ok(Box::new(Resp::SimpleStrings(SimpleStringsData::new(
-            "ok".to_owned(),
-        ))))
+    fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
+        info!(
+            "SetCommandPara process start: {:?}, data: {:?}",
+            &self, data
+        );
+        match &self.key {
+            Some(k) => {
+                let val = self
+                    .value
+                    .clone()
+                    .ok_or_else(|| anyhow::Error::msg("value is none"))?;
+                data.string_data
+                    .insert(k.clone(), Resp::SimpleStrings(SimpleStringsData::new(val)));
+                Ok(Resp::SimpleStrings(SimpleStringsData::new("OK".to_owned())))
+            }
+            None => Err(anyhow::Error::msg("key is none")),
+        }
     }
 }
