@@ -2,6 +2,7 @@ use crate::{Resp, RespDecoder};
 use crate::{RespEncoder, RespError};
 use anyhow::Result;
 use tokio_util::codec::{Decoder, Encoder};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct RespFrameCodec;
@@ -22,8 +23,12 @@ impl Encoder<Resp> for RespFrameCodec {
     type Error = anyhow::Error;
 
     fn encode(&mut self, item: Resp, dst: &mut bytes::BytesMut) -> Result<()> {
+        info!("Encoder.encode item: {:?}", item);
         let encoded = item.encode()?;
-        println!("encoded: {:?}", String::from_utf8_lossy(&encoded));
+        info!(
+            "Encoder.encode encoded: {:?}",
+            String::from_utf8_lossy(&encoded)
+        );
         dst.extend_from_slice(&encoded);
         Ok(())
     }

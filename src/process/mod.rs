@@ -1,5 +1,5 @@
 use enum_dispatch::enum_dispatch;
-use tracing::info;
+use tracing::{error, info};
 
 use crate::process::string::StringCommand;
 use crate::{GetCommandPara, Resp};
@@ -70,12 +70,12 @@ impl TryFrom<Resp> for CommandGroup {
     type Error = anyhow::Error;
 
     fn try_from(value: Resp) -> Result<Self, Self::Error> {
-        println!("value: {:?}", &value);
+        info!("TryFrom<Resp>.try_from value: {:?}", &value);
         match value {
             Resp::Arrays(arr) => {
                 let mut iter = arr.val.iter();
                 let command = try_exact_bulk_string(iter.next())?;
-                println!("command: {:?}", &command);
+                info!("TryFrom<Resp>.try_from command: {:?}", &command);
                 match command.to_lowercase().as_str() {
                     "set" => {
                         let key = try_exact_bulk_string(iter.next())?;
@@ -85,7 +85,10 @@ impl TryFrom<Resp> for CommandGroup {
                             let key = try_exact_bulk_string(Some(item))?;
                             para.add(key.to_string(), None);
                         }
-                        info!("key:{}, value:{} para: {:?}", key, value, &para);
+                        info!(
+                            "TryFrom<Resp>.try_from key:{}, value:{} para: {:?}",
+                            key, value, &para
+                        );
                         Ok(CommandGroup::String(StringCommand::Set(
                             SetCommandPara::new(
                                 Some(key.to_string()),
@@ -96,12 +99,15 @@ impl TryFrom<Resp> for CommandGroup {
                     }
                     "get" => {
                         let key = try_exact_bulk_string(iter.next())?;
-                        info!("key:{}", key);
+                        info!("TryFrom<Resp>.try_from key:{}", key);
                         Ok(CommandGroup::String(StringCommand::Get(
                             GetCommandPara::new(Some(key.to_string()), None, Parameter::new()),
                         )))
                     }
-                    _ => Err(anyhow::anyhow!("not support command")),
+                    comm => {
+                        error!("not support command: {}", comm);
+                        Err(anyhow::anyhow!("not support command"))
+                    }
                 }
             }
             _ => Err(anyhow::anyhow!("unsupported command")),
@@ -113,7 +119,7 @@ impl TryFrom<Resp> for CommandGroup {
 pub fn try_exact_bulk_string(resp_opt: Option<&Resp>) -> Result<&str, anyhow::Error> {
     match resp_opt {
         Some(Resp::BulkStrings(para)) => {
-            info!("para: {:?}", para);
+            info!("try_exact_bulk_string para: {:?}", para);
             Ok(para.val.as_str())
         }
         _ => Err(anyhow::anyhow!("invalid command")),

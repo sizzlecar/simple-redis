@@ -7,7 +7,7 @@ use simple_redis::{network::RespFrameCodec, process::CommandGroup};
 use tokio::net::TcpListener;
 use tokio_stream::StreamExt;
 use tokio_util::codec::Framed;
-use tracing::{info, level_filters::LevelFilter};
+use tracing::{error, info};
 
 /// 1. 从TcpStream从读取frame，要为Resp实现 frame decode 和 encode
 /// 2. 从frame中解析出命令和参数
@@ -15,9 +15,7 @@ use tracing::{info, level_filters::LevelFilter};
 /// 4. Processor返回一个Resp，将Resp encode 结果写入TcpStream
 #[tokio::main]
 async fn main() -> Result<()> {
-    tracing_subscriber::fmt()
-        .with_max_level(LevelFilter::INFO)
-        .init();
+    tracing_subscriber::fmt().init();
     let addr = "127.0.0.1:6379";
     let listener: TcpListener = TcpListener::bind(addr).await?;
     info!("Listening on: {}", addr);
@@ -34,25 +32,25 @@ async fn main() -> Result<()> {
                     Some(Ok(frame)) => {
                         info!("Received frame: {:?}", frame);
                         let command: CommandGroup = CommandGroup::try_from(frame)?;
-                        info!("frame to command : {:?}", command);
+                        info!("Rrame to command : {:?}", command);
                         let res_frame = command.process(&data_clone)?;
-                        println!("Response frame: {:?}", res_frame);
+                        info!("Response frame: {:?}", res_frame);
                         match framed.send(res_frame).await {
                             Ok(_) => {
-                                println!("Response sent");
+                                info!("Response frame send success");
                             }
                             Err(e) => {
-                                eprintln!("Error: {}", e);
+                                error!("send response frame error: {}", e);
                                 return Err(e);
                             }
                         };
                     }
                     Some(Err(e)) => {
-                        eprintln!("Error: {}", e);
+                        error!("Rramed next() await error: {}", e);
                         return Err(e);
                     }
                     None => {
-                        println!("Connection closed");
+                        info!("Addr: {:?} connection closed", addr);
                         return Ok(());
                     }
                 };

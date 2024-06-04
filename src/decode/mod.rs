@@ -1,4 +1,5 @@
 use bytes::{Buf, BytesMut};
+use tracing::info;
 
 use crate::{
     resp::Resp, Arrays, BigNumbers, Booleans, BulkStrings, Doubles, Integers, Nulls, RespDecoder,
@@ -9,7 +10,7 @@ use crate::{
 
 impl RespDecoder for Resp {
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
-        println!("decode buf: {:?}", buf);
+        info!("RespDecoder.decode buf: {:?}", buf);
         //1. 取出第一个byte 判断RESP
         //2. 根据每个RESP的类型的反序列化规则 转化为 对应的RESP类型
         //3. 如果是Array类型 则继续递归解析
@@ -40,9 +41,9 @@ impl RespDecoder for Resp {
                 let mut arr: Vec<Resp> = Vec::new();
                 //array的长度就是需要解析元素的次数
                 for i in 0..array_len.parse::<usize>()? {
-                    println!("i: {}, buf:{:?}", i, buf);
+                    info!("i: {}, buf:{:?}", i, buf);
                     arr.push(Resp::decode(buf)?);
-                    println!("i: {}, arr:{:?}", i, arr);
+                    info!("i: {}, arr:{:?}", i, arr);
                     if !buf.is_empty() {
                         advance_to_next(buf)?;
                     }
@@ -100,7 +101,7 @@ fn exact(buf: &mut BytesMut) -> Result<String, RespError> {
 }
 
 fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespError> {
-    println!("exact_advance start: buf:{:?}", buf);
+    info!("exact_advance start: buf:{:?}", buf);
     let pos_opt = buf
         .windows(CRLF.len())
         .position(|window: &[u8]| window == CRLF);
@@ -109,7 +110,7 @@ fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespE
         if advance_flag {
             buf.advance(pos + CRLF.len());
         }
-        println!("exact_advance end: buf:{:?}", buf);
+        info!("exact_advance end: buf:{:?}", buf);
         Ok(res)
     } else {
         Err(RespError::NotComplete)
@@ -117,23 +118,23 @@ fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespE
 }
 
 fn advance_to_next(buf: &mut BytesMut) -> Result<usize, RespError> {
-    println!("advance_to_next start: buf:{:?}", buf);
+    info!("advance_to_next start: buf:{:?}", buf);
     let pos_opt = buf
         .windows(CRLF.len())
         .position(|window: &[u8]| window == CRLF);
     if let Some(pos) = pos_opt {
         let res: usize = pos + CRLF.len();
-        println!("advance_to_next buf:{:?}, CRLF index: {}", buf, res);
+        info!("advance_to_next buf:{:?}, CRLF index: {}", buf, res);
         match buf.first() {
             Some(&BULK_STRINGS_BYTE) => {
                 let len: String = exact(buf)?;
                 let end = res + len.parse::<usize>()? + 2 * CRLF.len();
-                println!("advance_to_next end: buf:{:?}", buf);
+                info!("advance_to_next end: buf:{:?}", buf);
                 Ok(end)
             }
             _ => {
                 let end = res;
-                println!("advance_to_next end: buf:{:?}", buf);
+                info!("advance_to_next end: buf:{:?}", buf);
                 Ok(end)
             }
         }

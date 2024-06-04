@@ -31,8 +31,6 @@ mod tests {
         };
         let res = arrays.encode().unwrap();
         let expected = "*4\r\n$3\r\nfoo\r\n:42\r\n,13.14\r\n(123456789\r\n".as_bytes();
-        println!("{:?}", String::from_utf8(res.clone()).unwrap());
-        println!("{:?}", String::from_utf8(expected.to_vec()).unwrap());
         assert_eq!(res, expected);
     }
 }
