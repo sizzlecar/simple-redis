@@ -1,6 +1,5 @@
 //Redis serialization protocol data type enum
 
-use enum_dispatch::enum_dispatch;
 use thiserror::Error;
 
 pub const CRLF: [u8; 2] = [b'\r', b'\n'];
@@ -15,7 +14,6 @@ pub const DOUBLES_BYTE: u8 = b',';
 pub const BIG_NUMBERS_BYTE: u8 = b'(';
 
 #[derive(Debug, PartialEq, Clone)]
-#[enum_dispatch(RespEncoder)]
 pub enum Resp {
     SimpleStrings(SimpleStringsData),
     SimpleErrors(SimpleErrors),
@@ -26,6 +24,23 @@ pub enum Resp {
     Booleans(Booleans),
     Doubles(Doubles),
     BigNumbers(BigNumbers),
+}
+
+// 手动实现RespEncoder for Resp
+impl crate::RespEncoder for Resp {
+    fn encode(self) -> Result<Vec<u8>, anyhow::Error> {
+        match self {
+            Resp::SimpleStrings(data) => data.encode(),
+            Resp::SimpleErrors(data) => data.encode(),
+            Resp::Integers(data) => data.encode(),
+            Resp::BulkStrings(data) => data.encode(),
+            Resp::Arrays(data) => data.encode(),
+            Resp::Nulls(data) => data.encode(),
+            Resp::Booleans(data) => data.encode(),
+            Resp::Doubles(data) => data.encode(),
+            Resp::BigNumbers(data) => data.encode(),
+        }
+    }
 }
 
 #[derive(Error, Debug, PartialEq, Eq)]
