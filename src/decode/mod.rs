@@ -1,5 +1,5 @@
 use bytes::{Buf, BytesMut};
-use tracing::info;
+use tracing::{debug, info, warn};
 
 use crate::{
     resp::Resp, Arrays, BigNumbers, Booleans, BulkStrings, Doubles, Integers, Nulls, RespDecoder,
@@ -10,7 +10,7 @@ use crate::{
 
 impl RespDecoder for Resp {
     fn decode(buf: &mut BytesMut) -> Result<Self, RespError> {
-        info!("RespDecoder.decode buf: {:?}", buf);
+        debug!("RespDecoder.decode buf length: {}", buf.len());
         //1. 取出第一个byte 判断RESP
         //2. 根据每个RESP的类型的反序列化规则 转化为 对应的RESP类型
         //3. 如果是Array类型 则继续递归解析
@@ -31,22 +31,35 @@ impl RespDecoder for Resp {
                     .map_err(RespError::ParseIntError)
             }
             Some(&BULK_STRINGS_BYTE) => {
-                let str_len = exact_advance(buf, true)?.parse()?;
+                let str_len = exact_advance(buf, true)?.parse::<isize>()?;
+                if str_len < 0 {
+                    // 处理 NULL bulk string
+                    return Ok(Resp::Nulls(Nulls::new()));
+                }
+                let str_len = str_len as usize;
+                if buf.len() < str_len + CRLF.len() {
+                    return Err(RespError::NotComplete);
+                }
                 let val = buf[..str_len].to_vec();
                 buf.advance(str_len + CRLF.len());
                 Ok(Resp::BulkStrings(BulkStrings::new(String::from_utf8(val)?)))
             }
             Some(&ARRAYS_BYTE) => {
                 let array_len = exact_advance(buf, true)?;
+                let array_len: usize = array_len.parse()?;
                 let mut arr: Vec<Resp> = Vec::new();
                 //array的长度就是需要解析元素的次数
-                for i in 0..array_len.parse::<usize>()? {
-                    info!("i: {}, buf:{:?}", i, buf);
-                    arr.push(Resp::decode(buf)?);
-                    info!("i: {}, arr:{:?}", i, arr);
-                    if !buf.is_empty() {
-                        advance_to_next(buf)?;
+                for i in 0..array_len {
+                    debug!("Parsing array element {}/{}", i + 1, array_len);
+
+                    // 检查是否有足够的数据继续解析
+                    if buf.is_empty() {
+                        return Err(RespError::NotComplete);
                     }
+
+                    arr.push(Resp::decode(buf)?);
+
+                    // 不需要手动advance，decode函数会处理
                 }
                 Ok(Resp::Arrays(Arrays::new(arr)))
             }
@@ -101,7 +114,7 @@ fn exact(buf: &mut BytesMut) -> Result<String, RespError> {
 }
 
 fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespError> {
-    info!("exact_advance start: buf:{:?}", buf);
+    debug!("exact_advance start, buf length: {}", buf.len());
     let pos_opt = buf
         .windows(CRLF.len())
         .position(|window: &[u8]| window == CRLF);
@@ -110,7 +123,7 @@ fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespE
         if advance_flag {
             buf.advance(pos + CRLF.len());
         }
-        info!("exact_advance end: buf:{:?}", buf);
+        debug!("exact_advance end, remaining buf length: {}", buf.len());
         Ok(res)
     } else {
         Err(RespError::NotComplete)
@@ -118,28 +131,42 @@ fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespE
 }
 
 fn advance_to_next(buf: &mut BytesMut) -> Result<usize, RespError> {
-    info!("advance_to_next start: buf:{:?}", buf);
+    debug!("advance_to_next start, buf length: {}", buf.len());
+
+    // 检查缓冲区是否为空或太小
+    if buf.len() < CRLF.len() {
+        return Err(RespError::NotComplete);
+    }
+
     let pos_opt = buf
         .windows(CRLF.len())
         .position(|window: &[u8]| window == CRLF);
     if let Some(pos) = pos_opt {
         let res: usize = pos + CRLF.len();
-        info!("advance_to_next buf:{:?}, CRLF index: {}", buf, res);
+        debug!("advance_to_next found CRLF at position: {}", res);
         match buf.first() {
             Some(&BULK_STRINGS_BYTE) => {
                 let len: String = exact(buf)?;
-                let end = res + len.parse::<usize>()? + 2 * CRLF.len();
-                info!("advance_to_next end: buf:{:?}", buf);
+                let parsed_len = len.parse::<isize>().map_err(RespError::ParseIntError)?;
+
+                if parsed_len < 0 {
+                    // NULL bulk string
+                    return Ok(res);
+                }
+
+                let end = res + parsed_len as usize + 2 * CRLF.len();
+                debug!("advance_to_next end, calculated end: {}", end);
                 Ok(end)
             }
             _ => {
                 let end = res;
-                info!("advance_to_next end: buf:{:?}", buf);
+                debug!("advance_to_next end, simple end: {}", end);
                 Ok(end)
             }
         }
     } else {
-        Err(RespError::InvalidFrameLength(buf.len() as isize))
+        // 不是错误，只是数据不完整
+        Err(RespError::NotComplete)
     }
 }
 

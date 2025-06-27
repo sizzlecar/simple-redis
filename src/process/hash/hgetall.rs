@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::{process::Parameter, Data, Arrays, BulkStrings, Processor, Resp};
+use crate::{process::Parameter, Arrays, BulkStrings, Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct HGetAllCommandPara {
@@ -17,7 +17,7 @@ impl HGetAllCommandPara {
 impl Processor for HGetAllCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("HGetAllCommandPara process start: {:?}", &self);
-        
+
         match data.hash_data.get(&self.key) {
             Some(hash) => {
                 let mut result = Vec::new();
@@ -30,4 +30,4 @@ impl Processor for HGetAllCommandPara {
             None => Ok(Resp::Arrays(Arrays::new(Vec::new()))),
         }
     }
-} 
+}

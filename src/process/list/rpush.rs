@@ -19,18 +19,20 @@ impl RPushCommandPara {
 impl Processor for RPushCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("RPushCommandPara process start: {:?}", &self);
-        
-        let mut list = data.list_data.get(&self.key)
+
+        let mut list = data
+            .list_data
+            .get(&self.key)
             .map(|entry| entry.value().clone())
             .unwrap_or_else(VecDeque::new);
-        
+
         for value in &self.values {
             list.push_back(value.clone());
         }
-        
+
         let new_length = list.len() as i64;
         data.list_data.insert(self.key.clone(), list);
-        
+
         Ok(Resp::Integers(Integers::new(new_length)))
     }
-} 
+}

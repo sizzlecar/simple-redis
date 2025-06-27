@@ -12,31 +12,33 @@ pub struct HSetCommandPara {
 
 impl HSetCommandPara {
     pub fn new(key: String, field_values: Vec<(String, String)>, para: Parameter) -> Self {
-        Self { key, field_values, para }
+        Self {
+            key,
+            field_values,
+            para,
+        }
     }
 }
 
 impl Processor for HSetCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
-        info!("HSetCommandPara process start: {:?}", &self);
-        
-        let mut new_fields = 0i64;
-        
-        // 获取或创建hash
-        let mut hash = data.hash_data.get(&self.key)
+        let mut hash_map = data
+            .hash_data
+            .get(&self.key)
             .map(|entry| entry.value().clone())
             .unwrap_or_else(HashMap::new);
-        
+
+        let mut new_fields = 0;
         for (field, value) in &self.field_values {
-            let is_new = !hash.contains_key(field);
-            hash.insert(field.clone(), value.clone());
-            if is_new {
+            if !hash_map.contains_key(field) {
                 new_fields += 1;
             }
+            hash_map.insert(field.clone(), value.clone());
         }
-        
-        data.hash_data.insert(self.key.clone(), hash);
-        
-        Ok(Resp::Integers(Integers::new(new_fields)))
+
+        data.hash_data.insert(self.key.clone(), hash_map);
+
+        info!("✅ HSET '{}' -> {} new fields added", self.key, new_fields);
+        Ok(Resp::Integers(Integers::new(new_fields as i64)))
     }
-} 
+}

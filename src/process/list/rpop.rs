@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::{process::Parameter, Data, BulkStrings, Nulls, Processor, Resp, Arrays};
+use crate::{process::Parameter, Arrays, BulkStrings, Data, Nulls, Processor, Resp};
 
 #[derive(Debug)]
 pub struct RPopCommandPara {
@@ -18,13 +18,13 @@ impl RPopCommandPara {
 impl Processor for RPopCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("RPopCommandPara process start: {:?}", &self);
-        
+
         match data.list_data.get_mut(&self.key) {
             Some(mut list) => {
                 if list.is_empty() {
                     return Ok(Resp::Nulls(Nulls::new()));
                 }
-                
+
                 match self.count {
                     Some(count) if count > 1 => {
                         let mut results = Vec::new();
@@ -35,27 +35,25 @@ impl Processor for RPopCommandPara {
                                 break;
                             }
                         }
-                        
+
                         if list.is_empty() {
                             data.list_data.remove(&self.key);
                         }
-                        
+
                         Ok(Resp::Arrays(Arrays::new(results)))
                     }
-                    _ => {
-                        match list.pop_back() {
-                            Some(value) => {
-                                if list.is_empty() {
-                                    data.list_data.remove(&self.key);
-                                }
-                                Ok(Resp::BulkStrings(BulkStrings::new(value)))
+                    _ => match list.pop_back() {
+                        Some(value) => {
+                            if list.is_empty() {
+                                data.list_data.remove(&self.key);
                             }
-                            None => Ok(Resp::Nulls(Nulls::new())),
+                            Ok(Resp::BulkStrings(BulkStrings::new(value)))
                         }
-                    }
+                        None => Ok(Resp::Nulls(Nulls::new())),
+                    },
                 }
             }
             None => Ok(Resp::Nulls(Nulls::new())),
         }
     }
-} 
+}

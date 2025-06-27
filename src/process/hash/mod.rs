@@ -1,8 +1,8 @@
-pub mod hset;
-pub mod hget;
 pub mod hdel;
+pub mod hget;
 pub mod hgetall;
 pub mod hkeys;
+pub mod hset;
 pub mod hvals;
 
 #[derive(Debug)]

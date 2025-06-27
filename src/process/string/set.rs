@@ -21,21 +21,31 @@ impl SetCommandPara {
 
 impl Processor for SetCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
-        info!(
-            "SetCommandPara process start: {:?}, data: {:?}",
-            &self, data
-        );
-        match &self.key {
-            Some(k) => {
-                let val = self
-                    .value
-                    .clone()
-                    .ok_or_else(|| anyhow::Error::msg("value is none"))?;
-                data.string_data
-                    .insert(k.clone(), Resp::SimpleStrings(SimpleStringsData::new(val)));
+        match (&self.key, &self.value) {
+            (Some(k), Some(v)) => {
+                // 处理特殊的管理命令
+                match k.as_str() {
+                    "__client__" | "__select__" | "__unsupported__" => {
+                        info!("🔧 Management command -> OK");
+                        return Ok(Resp::SimpleStrings(SimpleStringsData::new("OK".to_owned())));
+                    }
+                    _ => {}
+                }
+
+                // 正常的SET操作
+                data.string_data.insert(
+                    k.clone(),
+                    Resp::SimpleStrings(SimpleStringsData::new(v.clone())),
+                );
+                info!("✅ SET '{}' = '{}' -> OK", k, v);
                 Ok(Resp::SimpleStrings(SimpleStringsData::new("OK".to_owned())))
             }
-            None => Err(anyhow::Error::msg("key is none")),
+            _ => {
+                info!("❌ SET -> missing key or value");
+                Ok(Resp::SimpleStrings(SimpleStringsData::new(
+                    "ERR wrong number of arguments for 'set' command".to_owned(),
+                )))
+            }
         }
     }
 }

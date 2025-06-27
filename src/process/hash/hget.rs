@@ -1,6 +1,6 @@
 use tracing::info;
 
-use crate::{process::Parameter, Data, BulkStrings, Nulls, Processor, Resp};
+use crate::{process::Parameter, BulkStrings, Data, Nulls, Processor, Resp};
 
 #[derive(Debug)]
 pub struct HGetCommandPara {
@@ -17,16 +17,33 @@ impl HGetCommandPara {
 
 impl Processor for HGetCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
-        info!("HGetCommandPara process start: {:?}", &self);
-        
         match data.hash_data.get(&self.key) {
-            Some(hash) => {
+            Some(hash_entry) => {
+                let hash = hash_entry.value();
                 match hash.get(&self.field) {
-                    Some(value) => Ok(Resp::BulkStrings(BulkStrings::new(value.clone()))),
-                    None => Ok(Resp::Nulls(Nulls::new())),
+                    Some(value) => {
+                        info!(
+                            "✅ HGET '{}' '{}' -> found: '{}'",
+                            self.key, self.field, value
+                        );
+                        Ok(Resp::BulkStrings(BulkStrings::new(value.clone())))
+                    }
+                    None => {
+                        info!(
+                            "❌ HGET '{}' '{}' -> field not found (NULL)",
+                            self.key, self.field
+                        );
+                        Ok(Resp::Nulls(Nulls::new()))
+                    }
                 }
             }
-            None => Ok(Resp::Nulls(Nulls::new())),
+            None => {
+                info!(
+                    "❌ HGET '{}' '{}' -> key not found (NULL)",
+                    self.key, self.field
+                );
+                Ok(Resp::Nulls(Nulls::new()))
+            }
         }
     }
-} 
+}

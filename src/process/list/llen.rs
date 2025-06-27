@@ -17,10 +17,10 @@ impl LLenCommandPara {
 impl Processor for LLenCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("LLenCommandPara process start: {:?}", &self);
-        
+
         match data.list_data.get(&self.key) {
             Some(list) => Ok(Resp::Integers(Integers::new(list.len() as i64))),
             None => Ok(Resp::Integers(Integers::new(0))),
         }
     }
-} 
+}

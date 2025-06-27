@@ -18,7 +18,7 @@ impl Processor for DelCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("DelCommandPara process start: {:?}", &self);
         let mut deleted_count = 0i64;
-        
+
         for key in &self.keys {
             if data.string_data.remove(key).is_some() {
                 deleted_count += 1;
@@ -32,7 +32,7 @@ impl Processor for DelCommandPara {
                 deleted_count += 1;
             }
         }
-        
+
         Ok(Resp::Integers(Integers::new(deleted_count)))
     }
-} 
+}

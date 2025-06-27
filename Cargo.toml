@@ -18,3 +18,4 @@ futures = { version = "0.3.30", default-features = false }
 thiserror = "1.0.58"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+regex = "1.0"

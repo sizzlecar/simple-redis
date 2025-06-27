@@ -18,7 +18,7 @@ impl Processor for ExistsCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("ExistsCommandPara process start: {:?}", &self);
         let mut exist_count = 0i64;
-        
+
         for key in &self.keys {
             if data.string_data.contains_key(key)
                 || data.hash_data.contains_key(key)
@@ -29,7 +29,7 @@ impl Processor for ExistsCommandPara {
                 exist_count += 1;
             }
         }
-        
+
         Ok(Resp::Integers(Integers::new(exist_count)))
     }
-} 
+}

@@ -11,26 +11,32 @@ pub struct DecrCommandPara {
 
 impl DecrCommandPara {
     pub fn new(key: String, decrement: Option<i64>, para: Parameter) -> Self {
-        Self { key, decrement, para }
+        Self {
+            key,
+            decrement,
+            para,
+        }
     }
 }
 
 impl Processor for DecrCommandPara {
     fn process(&self, data: &Data) -> Result<Resp, anyhow::Error> {
         info!("DecrCommandPara process start: {:?}", &self);
-        
+
         let decrement = self.decrement.unwrap_or(1);
-        
+
         match data.string_data.get(&self.key) {
             Some(entry) => {
                 let current_value = match entry.value() {
                     Resp::SimpleStrings(s) => &s.val,
                     Resp::BulkStrings(s) => &s.val,
-                    _ => return Ok(Resp::SimpleErrors(SimpleErrors::new(
-                        "ERR value is not an integer or out of range".to_string(),
-                    ))),
+                    _ => {
+                        return Ok(Resp::SimpleErrors(SimpleErrors::new(
+                            "ERR value is not an integer or out of range".to_string(),
+                        )))
+                    }
                 };
-                
+
                 match current_value.parse::<i64>() {
                     Ok(num) => {
                         let new_value = num - decrement;
@@ -56,4 +62,4 @@ impl Processor for DecrCommandPara {
             }
         }
     }
-} 
+}
