@@ -103,7 +103,7 @@ fn simple_pattern_match(text: &str, pattern: &str) -> bool {
 
     // 简单实现：将*替换为正则表达式的.*
     let regex_pattern = pattern.replace("*", ".*");
-    let regex = match regex::Regex::new(&format!("^{}$", regex_pattern)) {
+    let regex = match regex::Regex::new(&format!("^{regex_pattern}$")) {
         Ok(re) => re,
         Err(_) => return false,
     };

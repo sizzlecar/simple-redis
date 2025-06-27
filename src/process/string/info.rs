@@ -38,10 +38,10 @@ impl Processor for InfoCommandPara {
                     redis_version:7.0.0-simple\r\n\
                     redis_mode:standalone\r\n\
                     arch_bits:64\r\n\
-                    uptime_in_seconds:{}\r\n\
+                    uptime_in_seconds:{uptime}\r\n\
                     \r\n\
                     # Keyspace\r\n\
-                    db0:keys={},expires=0,avg_ttl=0\r\n\
+                    db0:keys={total_keys},expires=0,avg_ttl=0\r\n\
                     \r\n\
                     # Stats\r\n\
                     total_connections_received:1\r\n\
@@ -49,15 +49,13 @@ impl Processor for InfoCommandPara {
                     \r\n\
                     # Memory\r\n\
                     used_memory:1024\r\n\
-                    used_memory_human:1.00K\r\n",
-                    uptime, total_keys
+                    used_memory_human:1.00K\r\n"
                 )
             }
             Some("keyspace") => {
                 format!(
                     "# Keyspace\r\n\
-                    db0:keys={},expires=0,avg_ttl=0\r\n",
-                    total_keys
+                    db0:keys={total_keys},expires=0,avg_ttl=0\r\n"
                 )
             }
             Some("stats") => "# Stats\r\n\
@@ -65,7 +63,7 @@ impl Processor for InfoCommandPara {
                     total_commands_processed:1\r\n"
                 .to_string(),
             Some(section) => {
-                format!("# {}\r\n", section)
+                format!("# {section}\r\n")
             }
         };
 

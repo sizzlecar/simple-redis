@@ -83,8 +83,7 @@ impl RespDecoder for Resp {
                     Ok(Resp::Booleans(Booleans::new(false)))
                 } else {
                     Err(RespError::InvalidFrameType(format!(
-                        "invalid RESP boolean: {:?}",
-                        val
+                        "invalid RESP boolean: {val:?}"
                     )))
                 }
             }
@@ -102,8 +101,7 @@ impl RespDecoder for Resp {
             }
             None => Err(RespError::NotComplete),
             _ => Err(RespError::InvalidFrameType(format!(
-                "expect_length: unknown frame type: {:?}",
-                buf
+                "expect_length: unknown frame type: {buf:?}"
             ))),
         }
     }
