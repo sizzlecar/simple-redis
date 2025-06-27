@@ -5,6 +5,7 @@ pub struct ScanCommandPara {
     cursor: u64,
     pattern: Option<String>,
     count: Option<u64>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

@@ -5,6 +5,7 @@ use crate::{process::Parameter, Data, Processor, Resp, SimpleStringsData};
 #[derive(Debug)]
 pub struct TypeCommandPara {
     pub key: String,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

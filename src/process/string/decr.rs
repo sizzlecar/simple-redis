@@ -6,6 +6,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp, SimpleErrors, S
 pub struct DecrCommandPara {
     pub key: String,
     pub decrement: Option<i64>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

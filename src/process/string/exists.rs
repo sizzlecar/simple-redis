@@ -5,6 +5,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 #[derive(Debug)]
 pub struct ExistsCommandPara {
     pub keys: Vec<String>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

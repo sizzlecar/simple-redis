@@ -7,6 +7,7 @@ pub struct LRangeCommandPara {
     pub key: String,
     pub start: i64,
     pub stop: i64,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

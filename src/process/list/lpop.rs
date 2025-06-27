@@ -6,6 +6,7 @@ use crate::{process::Parameter, BulkStrings, Data, Nulls, Processor, Resp};
 pub struct LPopCommandPara {
     pub key: String,
     pub count: Option<i64>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

@@ -6,6 +6,7 @@ use crate::{process::Parameter, BulkStrings, Data, Nulls, Processor, Resp};
 pub struct HGetCommandPara {
     pub key: String,
     pub field: String,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

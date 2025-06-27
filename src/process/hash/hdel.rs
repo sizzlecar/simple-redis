@@ -6,6 +6,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 pub struct HDelCommandPara {
     pub key: String,
     pub fields: Vec<String>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

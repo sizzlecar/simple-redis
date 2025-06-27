@@ -1,4 +1,4 @@
-use tracing::{debug, info};
+use tracing::info;
 
 use crate::{process::Parameter, Data, Nulls, Processor, Resp, SimpleErrors};
 
@@ -9,6 +9,7 @@ pub struct GetCommandPara {
 
     pub value: Option<String>,
 
+    #[allow(dead_code)]
     para: Parameter,
 }
 

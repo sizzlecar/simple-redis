@@ -6,6 +6,7 @@ use crate::{process::Parameter, BulkStrings, Data, Processor, Resp};
 #[derive(Debug)]
 pub struct InfoCommandPara {
     pub section: Option<String>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 
@@ -59,13 +60,10 @@ impl Processor for InfoCommandPara {
                     total_keys
                 )
             }
-            Some("stats") => {
-                format!(
-                    "# Stats\r\n\
+            Some("stats") => "# Stats\r\n\
                     total_connections_received:1\r\n\
                     total_commands_processed:1\r\n"
-                )
-            }
+                .to_string(),
             Some(section) => {
                 format!("# {}\r\n", section)
             }

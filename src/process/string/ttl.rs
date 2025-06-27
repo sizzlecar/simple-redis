@@ -5,6 +5,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 #[derive(Debug)]
 pub struct TtlCommandPara {
     pub key: String,
+    #[allow(dead_code)]
     para: Parameter,
 }
 
@@ -38,7 +39,7 @@ impl Processor for TtlCommandPara {
                     info!("⏰ TTL '{}' key expired and removed", self.key);
                     Ok(Resp::Integers(Integers::new(-2))) // 键不存在
                 } else {
-                    let ttl_seconds = (ttl_millis / 1000) as i64;
+                    let ttl_seconds = ttl_millis / 1000;
                     info!("⏰ TTL '{}' -> {} seconds", self.key, ttl_seconds);
                     Ok(Resp::Integers(Integers::new(ttl_seconds)))
                 }

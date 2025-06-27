@@ -5,6 +5,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 #[derive(Debug)]
 pub struct PersistCommandPara {
     pub key: String,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

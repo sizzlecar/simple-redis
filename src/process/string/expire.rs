@@ -6,6 +6,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 pub struct ExpireCommandPara {
     pub key: String,
     pub seconds: u64,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

@@ -1,5 +1,5 @@
 use bytes::{Buf, BytesMut};
-use tracing::{debug, info, warn};
+use tracing::debug;
 
 use crate::{
     resp::Resp, Arrays, BigNumbers, Booleans, BulkStrings, Doubles, Integers, Nulls, RespDecoder,
@@ -109,6 +109,7 @@ impl RespDecoder for Resp {
     }
 }
 
+#[allow(dead_code)]
 fn exact(buf: &mut BytesMut) -> Result<String, RespError> {
     exact_advance(buf, false)
 }
@@ -130,6 +131,7 @@ fn exact_advance(buf: &mut BytesMut, advance_flag: bool) -> Result<String, RespE
     }
 }
 
+#[allow(dead_code)]
 fn advance_to_next(buf: &mut BytesMut) -> Result<usize, RespError> {
     debug!("advance_to_next start, buf length: {}", buf.len());
 

@@ -5,6 +5,7 @@ use crate::{process::Parameter, Arrays, BulkStrings, Data, Processor, Resp};
 #[derive(Debug)]
 pub struct HKeysCommandPara {
     pub key: String,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

@@ -7,6 +7,7 @@ pub struct LRemCommandPara {
     pub key: String,
     pub count: i64,
     pub element: String,
+    #[allow(dead_code)]
     para: Parameter,
 }
 

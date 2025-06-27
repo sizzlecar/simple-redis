@@ -2,7 +2,7 @@ use crate::{Resp, RespDecoder};
 use crate::{RespEncoder, RespError};
 use anyhow::Result;
 use tokio_util::codec::{Decoder, Encoder};
-use tracing::{debug, info};
+use tracing::debug;
 
 #[derive(Debug)]
 pub struct RespFrameCodec;

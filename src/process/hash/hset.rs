@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use tracing::info;
 
 use crate::{process::Parameter, Data, Integers, Processor, Resp};
@@ -7,6 +6,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 pub struct HSetCommandPara {
     pub key: String,
     pub field_values: Vec<(String, String)>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 
@@ -26,7 +26,7 @@ impl Processor for HSetCommandPara {
             .hash_data
             .get(&self.key)
             .map(|entry| entry.value().clone())
-            .unwrap_or_else(HashMap::new);
+            .unwrap_or_default();
 
         let mut new_fields = 0;
         for (field, value) in &self.field_values {

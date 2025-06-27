@@ -1,4 +1,4 @@
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 use crate::process::hash::HashCommand;
 use crate::process::list::ListCommand;

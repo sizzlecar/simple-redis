@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 use tracing::info;
 
 use crate::{process::Parameter, Data, Integers, Processor, Resp};
@@ -7,6 +6,7 @@ use crate::{process::Parameter, Data, Integers, Processor, Resp};
 pub struct LPushCommandPara {
     pub key: String,
     pub values: Vec<String>,
+    #[allow(dead_code)]
     para: Parameter,
 }
 
@@ -24,7 +24,7 @@ impl Processor for LPushCommandPara {
             .list_data
             .get(&self.key)
             .map(|entry| entry.value().clone())
-            .unwrap_or_else(VecDeque::new);
+            .unwrap_or_default();
 
         for value in self.values.iter().rev() {
             list.push_front(value.clone());
