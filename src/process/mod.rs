@@ -2,6 +2,8 @@ use tracing::{debug, info};
 
 use crate::process::hash::HashCommand;
 use crate::process::list::ListCommand;
+use crate::process::set::SetCommand;
+use crate::process::sorted_set::SortedSetCommand;
 use crate::process::string::StringCommand;
 use crate::{GetCommandPara, Resp};
 
@@ -62,8 +64,8 @@ pub enum CommandGroup {
     String(StringCommand),
     Hash(HashCommand),
     List(ListCommand),
-    //Set(SetCommand),
-    //SortedSet(SortedSetCommand),
+    Set(SetCommand),
+    SortedSet(SortedSetCommand),
 }
 
 impl TryFrom<Resp> for CommandGroup {
@@ -414,6 +416,142 @@ impl TryFrom<Resp> for CommandGroup {
                         )))
                     }
 
+                    // Set commands
+                    "sadd" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let mut members = Vec::new();
+                        for item in iter {
+                            let member = try_exact_bulk_string(Some(item))?;
+                            members.push(member.to_string());
+                        }
+                        info!(
+                            "🔷 SADD operation: key='{}', {} members",
+                            key,
+                            members.len()
+                        );
+                        Ok(CommandGroup::Set(SetCommand::SAdd(
+                            crate::process::set::sadd::SAddCommandPara::new(
+                                key.to_string(),
+                                members,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "scard" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        Ok(CommandGroup::Set(SetCommand::SCard(
+                            crate::process::set::scard::SCardCommandPara::new(
+                                key.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "smembers" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        Ok(CommandGroup::Set(SetCommand::SMembers(
+                            crate::process::set::smembers::SMembersCommandPara::new(
+                                key.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "srem" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let mut members = Vec::new();
+                        for item in iter {
+                            let member = try_exact_bulk_string(Some(item))?;
+                            members.push(member.to_string());
+                        }
+                        Ok(CommandGroup::Set(SetCommand::SRem(
+                            crate::process::set::srem::SRemCommandPara::new(
+                                key.to_string(),
+                                members,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "sismember" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let member = try_exact_bulk_string(iter.next())?;
+                        Ok(CommandGroup::Set(SetCommand::SIsMember(
+                            crate::process::set::sismember::SIsMemberCommandPara::new(
+                                key.to_string(),
+                                member.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+
+                    // Sorted Set commands
+                    "zadd" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let mut score_members = Vec::new();
+
+                        let args: Vec<&str> = iter
+                            .map(|item| try_exact_bulk_string(Some(item)))
+                            .collect::<Result<Vec<_>, _>>()?;
+
+                        if args.len() % 2 != 0 {
+                            return Err(anyhow::anyhow!("wrong number of arguments for ZADD"));
+                        }
+
+                        for chunk in args.chunks(2) {
+                            let score = chunk[0]
+                                .parse::<f64>()
+                                .map_err(|_| anyhow::anyhow!("invalid score"))?;
+                            let member = chunk[1].to_string();
+                            score_members.push((score, member));
+                        }
+
+                        info!(
+                            "📊 ZADD operation: key='{}', {} score-member pairs",
+                            key,
+                            score_members.len()
+                        );
+                        Ok(CommandGroup::SortedSet(SortedSetCommand::ZAdd(
+                            crate::process::sorted_set::zadd::ZAddCommandPara::new(
+                                key.to_string(),
+                                score_members,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "zcard" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        Ok(CommandGroup::SortedSet(SortedSetCommand::ZCard(
+                            crate::process::sorted_set::zcard::ZCardCommandPara::new(
+                                key.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "zscore" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let member = try_exact_bulk_string(iter.next())?;
+                        Ok(CommandGroup::SortedSet(SortedSetCommand::ZScore(
+                            crate::process::sorted_set::zscore::ZScoreCommandPara::new(
+                                key.to_string(),
+                                member.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "zrem" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let mut members = Vec::new();
+                        for item in iter {
+                            let member = try_exact_bulk_string(Some(item))?;
+                            members.push(member.to_string());
+                        }
+                        Ok(CommandGroup::SortedSet(SortedSetCommand::ZRem(
+                            crate::process::sorted_set::zrem::ZRemCommandPara::new(
+                                key.to_string(),
+                                members,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+
                     // Management commands (Redis客户端常用的管理命令)
                     "ping" => {
                         // PING命令，返回PONG
@@ -560,6 +698,8 @@ impl crate::Processor for CommandGroup {
             CommandGroup::String(cmd) => cmd.process(data),
             CommandGroup::Hash(cmd) => cmd.process(data),
             CommandGroup::List(cmd) => cmd.process(data),
+            CommandGroup::Set(cmd) => cmd.process(data),
+            CommandGroup::SortedSet(cmd) => cmd.process(data),
         }
     }
 }
@@ -610,6 +750,45 @@ impl crate::Processor for ListCommand {
             ListCommand::LLen(cmd) => cmd.process(data),
             ListCommand::LRange(cmd) => cmd.process(data),
             ListCommand::LRem(cmd) => cmd.process(data),
+        }
+    }
+}
+
+// 手动实现Processor trait for SetCommand
+impl crate::Processor for SetCommand {
+    fn process(&self, data: &crate::Data) -> Result<Resp, anyhow::Error> {
+        match self {
+            SetCommand::SAdd(cmd) => cmd.process(data),
+            SetCommand::SCard(cmd) => cmd.process(data),
+            SetCommand::SDiff(cmd) => cmd.process(data),
+            SetCommand::SInter(cmd) => cmd.process(data),
+            SetCommand::SIsMember(cmd) => cmd.process(data),
+            SetCommand::SMembers(cmd) => cmd.process(data),
+            SetCommand::SMove(cmd) => cmd.process(data),
+            SetCommand::SPop(cmd) => cmd.process(data),
+            SetCommand::SRandMember(cmd) => cmd.process(data),
+            SetCommand::SRem(cmd) => cmd.process(data),
+            SetCommand::SUnion(cmd) => cmd.process(data),
+        }
+    }
+}
+
+// 手动实现Processor trait for SortedSetCommand
+impl crate::Processor for SortedSetCommand {
+    fn process(&self, data: &crate::Data) -> Result<Resp, anyhow::Error> {
+        match self {
+            SortedSetCommand::ZAdd(cmd) => cmd.process(data),
+            SortedSetCommand::ZCard(cmd) => cmd.process(data),
+            SortedSetCommand::ZCount(cmd) => cmd.process(data),
+            SortedSetCommand::ZIncrBy(cmd) => cmd.process(data),
+            SortedSetCommand::ZRange(cmd) => cmd.process(data),
+            SortedSetCommand::ZRank(cmd) => cmd.process(data),
+            SortedSetCommand::ZRem(cmd) => cmd.process(data),
+            SortedSetCommand::ZRemRangeByRank(cmd) => cmd.process(data),
+            SortedSetCommand::ZRemRangeByScore(cmd) => cmd.process(data),
+            SortedSetCommand::ZRevRange(cmd) => cmd.process(data),
+            SortedSetCommand::ZRevRank(cmd) => cmd.process(data),
+            SortedSetCommand::ZScore(cmd) => cmd.process(data),
         }
     }
 }
