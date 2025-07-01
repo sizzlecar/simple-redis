@@ -8,16 +8,19 @@ pub mod get;
 pub mod incr;
 pub mod info;
 pub mod keys;
+pub mod mget;
+pub mod mset;
 pub mod persist;
 pub mod scan;
 pub mod set;
+pub mod setex;
 pub mod ttl;
 pub mod type_cmd;
 
 #[derive(Debug)]
 pub enum StringCommand {
-    Set(SetCommandPara),
-    Get(GetCommandPara),
+    Set(set::SetCommandPara),
+    Get(get::GetCommandPara),
     Del(del::DelCommandPara),
     Exists(exists::ExistsCommandPara),
     Incr(incr::IncrCommandPara),
@@ -29,4 +32,7 @@ pub enum StringCommand {
     Expire(expire::ExpireCommandPara),
     Ttl(ttl::TtlCommandPara),
     Persist(persist::PersistCommandPara),
+    MGet(mget::MGetCommandPara),
+    MSet(mset::MSetCommandPara),
+    SetEx(setex::SetExCommandPara),
 }

@@ -205,6 +205,61 @@ impl TryFrom<Resp> for CommandGroup {
                             ),
                         )))
                     }
+                    "mget" => {
+                        let mut keys = Vec::new();
+                        for item in iter {
+                            let key = try_exact_bulk_string(Some(item))?;
+                            keys.push(key.to_string());
+                        }
+                        info!("🔍 MGET operation: {} keys", keys.len());
+                        Ok(CommandGroup::String(StringCommand::MGet(
+                            crate::process::string::mget::MGetCommandPara::new(
+                                keys,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "mset" => {
+                        let args: Vec<&str> = iter
+                            .map(|item| try_exact_bulk_string(Some(item)))
+                            .collect::<Result<Vec<_>, _>>()?;
+
+                        if args.len() % 2 != 0 {
+                            return Err(anyhow::anyhow!("wrong number of arguments for MSET"));
+                        }
+
+                        let mut key_values = Vec::new();
+                        for chunk in args.chunks(2) {
+                            key_values.push((chunk[0].to_string(), chunk[1].to_string()));
+                        }
+
+                        info!("💾 MSET operation: {} key-value pairs", key_values.len());
+                        Ok(CommandGroup::String(StringCommand::MSet(
+                            crate::process::string::mset::MSetCommandPara::new(
+                                key_values,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "setex" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let seconds = try_exact_bulk_string(iter.next())?;
+                        let value = try_exact_bulk_string(iter.next())?;
+                        
+                        let seconds = seconds
+                            .parse::<u64>()
+                            .map_err(|_| anyhow::anyhow!("invalid expire time"))?;
+
+                        info!("💾⏰ SETEX operation: key='{}', seconds={}, value='{}'", key, seconds, value);
+                        Ok(CommandGroup::String(StringCommand::SetEx(
+                            crate::process::string::setex::SetExCommandPara::new(
+                                key.to_string(),
+                                seconds,
+                                value.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
 
                     // Hash commands
                     "hset" => {
@@ -286,6 +341,46 @@ impl TryFrom<Resp> for CommandGroup {
                         Ok(CommandGroup::Hash(HashCommand::HVals(
                             crate::process::hash::hvals::HValsCommandPara::new(
                                 key.to_string(),
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "hmget" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let mut fields = Vec::new();
+                        for item in iter {
+                            let field = try_exact_bulk_string(Some(item))?;
+                            fields.push(field.to_string());
+                        }
+                        info!("🗂️ HMGET operation: key='{}', {} fields", key, fields.len());
+                        Ok(CommandGroup::Hash(HashCommand::HMGet(
+                            crate::process::hash::hmget::HMGetCommandPara::new(
+                                key.to_string(),
+                                fields,
+                                Parameter::new(),
+                            ),
+                        )))
+                    }
+                    "hmset" => {
+                        let key = try_exact_bulk_string(iter.next())?;
+                        let args: Vec<&str> = iter
+                            .map(|item| try_exact_bulk_string(Some(item)))
+                            .collect::<Result<Vec<_>, _>>()?;
+
+                        if args.len() % 2 != 0 {
+                            return Err(anyhow::anyhow!("wrong number of arguments for HMSET"));
+                        }
+
+                        let mut field_values = Vec::new();
+                        for chunk in args.chunks(2) {
+                            field_values.push((chunk[0].to_string(), chunk[1].to_string()));
+                        }
+
+                        info!("🗂️ HMSET operation: key='{}', {} field-value pairs", key, field_values.len());
+                        Ok(CommandGroup::Hash(HashCommand::HMSet(
+                            crate::process::hash::hmset::HMSetCommandPara::new(
+                                key.to_string(),
+                                field_values,
                                 Parameter::new(),
                             ),
                         )))
@@ -721,6 +816,9 @@ impl crate::Processor for StringCommand {
             StringCommand::Expire(cmd) => cmd.process(data),
             StringCommand::Ttl(cmd) => cmd.process(data),
             StringCommand::Persist(cmd) => cmd.process(data),
+            StringCommand::MGet(cmd) => cmd.process(data),
+            StringCommand::MSet(cmd) => cmd.process(data),
+            StringCommand::SetEx(cmd) => cmd.process(data),
         }
     }
 }
@@ -735,6 +833,8 @@ impl crate::Processor for HashCommand {
             HashCommand::HGetAll(cmd) => cmd.process(data),
             HashCommand::HKeys(cmd) => cmd.process(data),
             HashCommand::HVals(cmd) => cmd.process(data),
+            HashCommand::HMGet(cmd) => cmd.process(data),
+            HashCommand::HMSet(cmd) => cmd.process(data),
         }
     }
 }
