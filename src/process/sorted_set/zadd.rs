@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 use std::collections::BTreeMap;
 
 #[derive(Debug)]
@@ -26,7 +26,10 @@ impl Processor for ZAddCommandPara {
             data.remove_key(&self.key);
         }
 
-        let mut sorted_set = data.sorted_set_data.entry(self.key.clone()).or_insert_with(BTreeMap::new);
+        let mut sorted_set = data
+            .sorted_set_data
+            .entry(self.key.clone())
+            .or_insert_with(BTreeMap::new);
         let mut added_count = 0;
 
         for (score, member) in &self.score_members {

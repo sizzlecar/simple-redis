@@ -424,7 +424,11 @@ impl TryFrom<Resp> for CommandGroup {
                             let member = try_exact_bulk_string(Some(item))?;
                             members.push(member.to_string());
                         }
-                        info!("🔷 SADD operation: key='{}', {} members", key, members.len());
+                        info!(
+                            "🔷 SADD operation: key='{}', {} members",
+                            key,
+                            members.len()
+                        );
                         Ok(CommandGroup::Set(SetCommand::SAdd(
                             crate::process::set::sadd::SAddCommandPara::new(
                                 key.to_string(),
@@ -482,15 +486,15 @@ impl TryFrom<Resp> for CommandGroup {
                     "zadd" => {
                         let key = try_exact_bulk_string(iter.next())?;
                         let mut score_members = Vec::new();
-                        
+
                         let args: Vec<&str> = iter
                             .map(|item| try_exact_bulk_string(Some(item)))
                             .collect::<Result<Vec<_>, _>>()?;
-                        
+
                         if args.len() % 2 != 0 {
                             return Err(anyhow::anyhow!("wrong number of arguments for ZADD"));
                         }
-                        
+
                         for chunk in args.chunks(2) {
                             let score = chunk[0]
                                 .parse::<f64>()
@@ -498,8 +502,12 @@ impl TryFrom<Resp> for CommandGroup {
                             let member = chunk[1].to_string();
                             score_members.push((score, member));
                         }
-                        
-                        info!("📊 ZADD operation: key='{}', {} score-member pairs", key, score_members.len());
+
+                        info!(
+                            "📊 ZADD operation: key='{}', {} score-member pairs",
+                            key,
+                            score_members.len()
+                        );
                         Ok(CommandGroup::SortedSet(SortedSetCommand::ZAdd(
                             crate::process::sorted_set::zadd::ZAddCommandPara::new(
                                 key.to_string(),

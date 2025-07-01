@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct SIsMemberCommandPara {
@@ -10,7 +10,11 @@ pub struct SIsMemberCommandPara {
 
 impl SIsMemberCommandPara {
     pub fn new(key: String, member: String, parameter: Parameter) -> Self {
-        Self { key, member, parameter }
+        Self {
+            key,
+            member,
+            parameter,
+        }
     }
 }
 
@@ -22,10 +26,16 @@ impl Processor for SIsMemberCommandPara {
             return Ok(Resp::Integers(crate::resp::Integers::new(0)));
         }
 
-        let is_member = data.set_data.get(&self.key)
+        let is_member = data
+            .set_data
+            .get(&self.key)
             .map(|set| set.contains(&self.member))
             .unwrap_or(false);
 
-        Ok(Resp::Integers(crate::resp::Integers::new(if is_member { 1 } else { 0 })))
+        Ok(Resp::Integers(crate::resp::Integers::new(if is_member {
+            1
+        } else {
+            0
+        })))
     }
 }

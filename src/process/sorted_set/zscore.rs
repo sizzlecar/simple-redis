@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct ZScoreCommandPara {
@@ -10,7 +10,11 @@ pub struct ZScoreCommandPara {
 
 impl ZScoreCommandPara {
     pub fn new(key: String, member: String, parameter: Parameter) -> Self {
-        Self { key, member, parameter }
+        Self {
+            key,
+            member,
+            parameter,
+        }
     }
 }
 
@@ -22,11 +26,15 @@ impl Processor for ZScoreCommandPara {
             return Ok(Resp::Nulls(crate::resp::Nulls::new()));
         }
 
-        let score = data.sorted_set_data.get(&self.key)
+        let score = data
+            .sorted_set_data
+            .get(&self.key)
             .and_then(|sorted_set| sorted_set.get(&self.member).copied());
 
         match score {
-            Some(score) => Ok(Resp::BulkStrings(crate::resp::BulkStrings::new(score.to_string()))),
+            Some(score) => Ok(Resp::BulkStrings(crate::resp::BulkStrings::new(
+                score.to_string(),
+            ))),
             None => Ok(Resp::Nulls(crate::resp::Nulls::new())),
         }
     }

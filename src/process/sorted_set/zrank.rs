@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct ZRankCommandPara {
@@ -10,7 +10,11 @@ pub struct ZRankCommandPara {
 
 impl ZRankCommandPara {
     pub fn new(key: String, member: String, parameter: Parameter) -> Self {
-        Self { key, member, parameter }
+        Self {
+            key,
+            member,
+            parameter,
+        }
     }
 }
 

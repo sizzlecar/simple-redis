@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -26,7 +26,10 @@ impl Processor for SAddCommandPara {
             data.remove_key(&self.key);
         }
 
-        let mut set = data.set_data.entry(self.key.clone()).or_insert_with(HashSet::new);
+        let mut set = data
+            .set_data
+            .entry(self.key.clone())
+            .or_insert_with(HashSet::new);
         let mut added_count = 0;
 
         for member in &self.members {

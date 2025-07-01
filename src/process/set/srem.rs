@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct SRemCommandPara {
@@ -27,14 +27,14 @@ impl Processor for SRemCommandPara {
         }
 
         let mut removed_count = 0;
-        
+
         if let Some(mut set) = data.set_data.get_mut(&self.key) {
             for member in &self.members {
                 if set.remove(member) {
                     removed_count += 1;
                 }
             }
-            
+
             // 如果集合为空，删除键
             if set.is_empty() {
                 drop(set); // 释放可变引用

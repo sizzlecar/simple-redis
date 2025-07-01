@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -21,14 +21,16 @@ impl Processor for SDiffCommandPara {
         }
 
         let first_key = &self.keys[0];
-        
+
         // 检查第一个键是否过期
         if data.is_expired(first_key) {
             data.remove_key(first_key);
             return Ok(Resp::Arrays(crate::resp::Arrays::new(vec![])));
         }
 
-        let mut result = data.set_data.get(first_key)
+        let mut result = data
+            .set_data
+            .get(first_key)
             .map(|set| set.clone())
             .unwrap_or_default();
 

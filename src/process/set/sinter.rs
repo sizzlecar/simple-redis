@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -44,7 +44,8 @@ impl Processor for SInterCommandPara {
             }
         }
 
-        let members = result.unwrap_or_default()
+        let members = result
+            .unwrap_or_default()
             .into_iter()
             .map(|member| Resp::BulkStrings(crate::resp::BulkStrings::new(member)))
             .collect();

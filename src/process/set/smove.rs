@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 use std::collections::HashSet;
 
 #[derive(Debug)]
@@ -41,9 +41,12 @@ impl Processor for SMoveCommandPara {
                     drop(source_set); // 释放可变引用
                     data.set_data.remove(&self.source);
                 }
-                
+
                 // 添加到目标集合
-                let mut dest_set = data.set_data.entry(self.destination.clone()).or_insert_with(HashSet::new);
+                let mut dest_set = data
+                    .set_data
+                    .entry(self.destination.clone())
+                    .or_insert_with(HashSet::new);
                 dest_set.insert(self.member.clone());
                 true
             } else {
@@ -53,6 +56,10 @@ impl Processor for SMoveCommandPara {
             false
         };
 
-        Ok(Resp::Integers(crate::resp::Integers::new(if moved { 1 } else { 0 })))
+        Ok(Resp::Integers(crate::resp::Integers::new(if moved {
+            1
+        } else {
+            0
+        })))
     }
 }

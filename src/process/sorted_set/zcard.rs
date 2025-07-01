@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct ZCardCommandPara {
@@ -21,7 +21,9 @@ impl Processor for ZCardCommandPara {
             return Ok(Resp::Integers(crate::resp::Integers::new(0)));
         }
 
-        let count = data.sorted_set_data.get(&self.key)
+        let count = data
+            .sorted_set_data
+            .get(&self.key)
             .map(|sorted_set| sorted_set.len() as i64)
             .unwrap_or(0);
 

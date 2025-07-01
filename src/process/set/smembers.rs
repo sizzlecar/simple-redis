@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct SMembersCommandPara {
@@ -21,7 +21,9 @@ impl Processor for SMembersCommandPara {
             return Ok(Resp::Arrays(crate::resp::Arrays::new(vec![])));
         }
 
-        let members = data.set_data.get(&self.key)
+        let members = data
+            .set_data
+            .get(&self.key)
             .map(|set| {
                 set.iter()
                     .map(|member| Resp::BulkStrings(crate::resp::BulkStrings::new(member.clone())))

@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct ZRemRangeByScoreCommandPara {
@@ -11,7 +11,12 @@ pub struct ZRemRangeByScoreCommandPara {
 
 impl ZRemRangeByScoreCommandPara {
     pub fn new(key: String, min: f64, max: f64, parameter: Parameter) -> Self {
-        Self { key, min, max, parameter }
+        Self {
+            key,
+            min,
+            max,
+            parameter,
+        }
     }
 }
 

@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct SRandMemberCommandPara {
@@ -10,7 +10,11 @@ pub struct SRandMemberCommandPara {
 
 impl SRandMemberCommandPara {
     pub fn new(key: String, count: Option<i64>, parameter: Parameter) -> Self {
-        Self { key, count, parameter }
+        Self {
+            key,
+            count,
+            parameter,
+        }
     }
 }
 
@@ -24,23 +28,26 @@ impl Processor for SRandMemberCommandPara {
 
         if let Some(set) = data.set_data.get(&self.key) {
             let members: Vec<String> = set.iter().cloned().collect();
-            
+
             if members.is_empty() {
                 return Ok(Resp::Nulls(crate::resp::Nulls::new()));
             }
-            
+
             if let Some(count) = self.count {
                 let selected_count = std::cmp::min(count.abs() as usize, members.len());
-                let selected: Vec<Resp> = members.iter()
+                let selected: Vec<Resp> = members
+                    .iter()
                     .take(selected_count)
                     .map(|member| Resp::BulkStrings(crate::resp::BulkStrings::new(member.clone())))
                     .collect();
-                
+
                 Ok(Resp::Arrays(crate::resp::Arrays::new(selected)))
             } else {
                 // 返回单个随机成员
                 if let Some(member) = members.first() {
-                    Ok(Resp::BulkStrings(crate::resp::BulkStrings::new(member.clone())))
+                    Ok(Resp::BulkStrings(crate::resp::BulkStrings::new(
+                        member.clone(),
+                    )))
                 } else {
                     Ok(Resp::Nulls(crate::resp::Nulls::new()))
                 }

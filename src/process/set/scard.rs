@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct SCardCommandPara {
@@ -21,7 +21,9 @@ impl Processor for SCardCommandPara {
             return Ok(Resp::Integers(crate::resp::Integers::new(0)));
         }
 
-        let count = data.set_data.get(&self.key)
+        let count = data
+            .set_data
+            .get(&self.key)
             .map(|set| set.len() as i64)
             .unwrap_or(0);
 

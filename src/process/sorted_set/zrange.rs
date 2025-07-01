@@ -1,5 +1,5 @@
-use crate::{Data, Processor, Resp};
 use crate::process::Parameter;
+use crate::{Data, Processor, Resp};
 
 #[derive(Debug)]
 pub struct ZRangeCommandPara {
@@ -11,8 +11,20 @@ pub struct ZRangeCommandPara {
 }
 
 impl ZRangeCommandPara {
-    pub fn new(key: String, start: i64, stop: i64, with_scores: bool, parameter: Parameter) -> Self {
-        Self { key, start, stop, with_scores, parameter }
+    pub fn new(
+        key: String,
+        start: i64,
+        stop: i64,
+        with_scores: bool,
+        parameter: Parameter,
+    ) -> Self {
+        Self {
+            key,
+            start,
+            stop,
+            with_scores,
+            parameter,
+        }
     }
 }
 
